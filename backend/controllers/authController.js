@@ -41,6 +41,9 @@ async function login(req, res) {
     }
 
     const user = rows[0];
+    if (!user.password) {
+      return res.status(401).json({ message: 'This account uses GitHub login' });
+    }
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(401).json({ message: 'Invalid credentials' });
 
