@@ -1,26 +1,35 @@
-require('dotenv').config();
-const db = require('./config/db');
-const bcrypt = require('bcryptjs');
+//* this one i ask AI to make me a fake data mockup data just for a test
+// for a future dev can remove this seed but for testing it's good when we got no data available right now
+
+require("dotenv").config();
+const db = require("./config/db");
+const bcrypt = require("bcryptjs");
 
 async function seed() {
   try {
-    const adminHash = await bcrypt.hash('admin123', 10);
-    const userHash = await bcrypt.hash('user123', 10);
+    const adminHash = await bcrypt.hash("admin123", 10);
+    const userHash = await bcrypt.hash("user123", 10);
 
-    await db.query('DELETE FROM purchases');
-    await db.query('DELETE FROM resources');
-    await db.query('DELETE FROM users');
-    await db.query('ALTER TABLE purchases AUTO_INCREMENT = 1');
-    await db.query('ALTER TABLE resources AUTO_INCREMENT = 1');
-    await db.query('ALTER TABLE users AUTO_INCREMENT = 1');
+    await db.query("DELETE FROM purchases");
+    await db.query("DELETE FROM resources");
+    await db.query("DELETE FROM users");
+    await db.query("ALTER TABLE purchases AUTO_INCREMENT = 1");
+    await db.query("ALTER TABLE resources AUTO_INCREMENT = 1");
+    await db.query("ALTER TABLE users AUTO_INCREMENT = 1");
 
     await db.query(
-      'INSERT INTO users (username, password, role) VALUES (?, ?, ?), (?, ?, ?), (?, ?, ?)',
+      "INSERT INTO users (username, password, role) VALUES (?, ?, ?), (?, ?, ?), (?, ?, ?)",
       [
-        'admin', adminHash, 'admin',
-        'stelle', userHash, 'user',
-        'caelus', userHash, 'user',
-      ]
+        "admin",
+        adminHash,
+        "admin",
+        "stelle",
+        userHash,
+        "user",
+        "caelus",
+        userHash,
+        "user",
+      ],
     );
 
     await db.query(`
@@ -81,13 +90,13 @@ async function seed() {
       ('Omniscia Spacesuit', 'Cosmetic', 'Exclusive costume for Stelle. Changes her outfit to a sleek Interastral Peace Corps uniform. Purely visual.', 50, null, 15.99)
     `);
 
-    console.log('Seed complete.');
-    console.log('  admin / admin123  (role: admin)');
-    console.log('  stelle / user123  (role: user)');
-    console.log('  caelus / user123  (role: user)');
+    console.log("Seed complete.");
+    console.log("  admin / admin123  (role: admin)");
+    console.log("  stelle / user123  (role: user)");
+    console.log("  caelus / user123  (role: user)");
     process.exit(0);
   } catch (err) {
-    console.error('Seed failed:', err.message);
+    console.error("Seed failed:", err.message);
     process.exit(1);
   }
 }

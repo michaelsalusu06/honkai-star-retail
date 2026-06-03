@@ -4,8 +4,10 @@ USE honkai_star_retail;
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(100) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL,
+  password VARCHAR(255) DEFAULT NULL,
   role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
+  github_id VARCHAR(100) UNIQUE DEFAULT NULL,
+  avatar_url VARCHAR(500) DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
