@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'myorder.dart';              // Relative path to your myorder file
 import 'profile.dart';              // Relative path to your profile file
-import 'productdetail.dart';  // Single reusable detail page replacing menu1-4
+import 'productdetail.dart';        // Single reusable detail page replacing menu1-4
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -12,11 +14,36 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
+  List<dynamic> _resources = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLiveResources();
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  // ─── HTTP GET: RETRIEVE LIVE RESOURCES FROM MYSQL ─────────────────
+  Future<void> _fetchLiveResources() async {
+    final url = Uri.parse('http://localhost:5000/api/resources');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        setState(() {
+          _resources = jsonDecode(response.body);
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Failed to fetch resources: $e');
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -152,93 +179,44 @@ class _HomePageState extends State<HomePage> {
                   ),
                   const SizedBox(height: 28),
 
-                  // 2X2 DYNAMIC PRODUCT GRID ITEMS MATRIX
-                  GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(), // Disables inner grid scrolling
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 20,
-                    childAspectRatio: 0.78, // Adjusts aspect sizing constraints perfectly
-                    children: [
-                      // Card 1 Configurations
-                      _buildProductCard(
-                        context,
-                        title: 'Penacony Galac ...',
-                        price: '160 Stellar Jade',
-                        meta: '⭐ 4.8 - 10K sold',
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ProductDetailPage(
-                              title: 'Penacony Galactic Resource',
-                              price: '160 Stellar Jade',
-                              ratingMeta: '⭐ 4.8 - 10K sold - 45 product(s) left',
-                              description: 'A premium travel passport directly to the golden hour entertainment capital of the cosmos. Immerse your party members within luxurious dreamscapes where boundaries between fantasy and material reality blur completely.',
-                              accentColor: Color(0xFFFCDD67), // Custom yellow display header
-                            ),
+                  // ─── DYNAMIC INVENTORY GRID SYSTEM (WIRED TO MYSQL) ───
+                  _isLoading
+                      ? const Center(child: CircularProgressIndicator(color: Colors.black))
+                      : GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(), // Disables inner grid scrolling
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 20,
+                            childAspectRatio: 0.78, // Preserves exact mockup aspect constraints
                           ),
+                          itemCount: _resources.length,
+                          itemBuilder: (context, index) {
+                            final item = _resources[index];
+                            return _buildProductCard(
+                              context,
+                              title: item['name'] ?? 'Galactic Resource',
+                              price: '${item['price'] ?? 0} Stellar Jade',
+                              meta: 'Stock: ${item['stock'] ?? 0} | ${item['type'] ?? 'Item'}',
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ProductDetailPage(
+                                      id: item['id'].toString(), // Securely binds dynamic ID map sequence
+                                      title: item['name'] ?? 'Galactic Resource',
+                                      price: '${item['price'] ?? 0} Stellar Jade',
+                                      ratingMeta: 'Stock: ${item['stock'] ?? 0} | Type: ${item['type'] ?? 'Resource'}',
+                                      description: item['description'] ?? 'A premium galactic resource stored directly within the database registry.',
+                                      accentColor: const Color(0xFF9AD1F5), // Standard matching header accent color block
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
                         ),
-                      ),
-                      // Card 2 Configurations
-                      _buildProductCard(
-                        context,
-                        title: 'Cruising in th ...',
-                        price: '1200 Stellar Jade',
-                        meta: '⭐ 4.3 - 72 sold',
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ProductDetailPage(
-                              title: 'Cruising in the Stellar Sea',
-                              price: '1200 Stellar Jade',
-                              ratingMeta: '⭐ 4.3 - 72 sold - 90 product(s) left',
-                              description: 'A fragment of memory frozen within a crystal of pure light, capturing the essence of boundless wandering across the vast, deep cosmic ocean tracks safely.',
-                              accentColor: Color(0xFF9AD1F5), // Custom blue display header
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Card 3 Configurations
-                      _buildProductCard(
-                        context,
-                        title: 'Xianzhou Luofu ...',
-                        price: '60 Stellar Jade',
-                        meta: '⭐ 4.9 - 5K sold',
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ProductDetailPage(
-                              title: 'Xianzhou Luofu Excursion',
-                              price: '60 Stellar Jade',
-                              ratingMeta: '⭐ 4.9 - 5K sold - 12 product(s) left',
-                              description: 'A complex micro-scroll mapping configuration detailing dense structural star charts of the alliance flagship architecture. Ideal navigation tracking data for wandering pathfinders.',
-                              accentColor: Color(0xFF8ECAA7), // Custom green display header
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Card 4 Configurations
-                      _buildProductCard(
-                        context,
-                        title: 'In the Night',
-                        price: '4000 Stellar Jade',
-                        meta: '⭐ 4.7 - 120 sold',
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ProductDetailPage(
-                              title: 'In the Night',
-                              price: '4000 Stellar Jade',
-                              ratingMeta: '⭐ 4.7 - 120 sold - 3 product(s) left',
-                              description: 'An ultra-rare combat light cone radiating an enigmatic dark aura. Grants a phenomenal, cascading acceleration multiplier to pathwalkers dedicated strictly to The Hunt.',
-                              accentColor: Color(0xFF53565A), // Custom dark slate display header
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),
@@ -359,6 +337,8 @@ class _HomePageState extends State<HomePage> {
               Text(
                 meta,
                 style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.black54, fontFamily: 'Courier'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),

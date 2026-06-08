@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'dart:html' as html;
+import 'package:http/http.dart' as http;
 import 'paynow.dart';
 
 class CheckoutPage extends StatefulWidget {
@@ -11,23 +14,64 @@ class CheckoutPage extends StatefulWidget {
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
-  // State option tracker for chosen payment gateway
+  // State option trackers for loading states and payment method selection
   String _selectedPaymentMethod = 'BCA Virtual Account';
+  bool _isProcessing = false;
 
-  // Helper calculation logic to extract digits from string labels (e.g. "160 Stellar Jade" -> 160)
+  // Helper calculation logic to extract digits safely from string labels (e.g., "160 Stellar Jade" -> 160)
   int _calculateSubtotal() {
     int total = 0;
     for (var item in widget.checkoutItems) {
       final priceStr = item['price'] ?? '0';
       final digitsOnly = RegExp(r'\d+').stringMatch(priceStr) ?? '0';
-      total += int.parse(digitsOnly);
+      total += int.parse(digitsOnly.isEmpty ? '0' : digitsOnly);
     }
     return total;
   }
 
+  // ─── HTTP POST: PROCESS REAL MYSQL PURCHASE LOOPS ─────────────────
+  Future<void> _processTransaction() async {
+    if (_isProcessing) return;
+    setState(() => _isProcessing = true);
+    
+    final token = html.window.localStorage['token'] ?? '';
+    
+    try {
+      // Processes structural deduction loops for each item present inside the payload
+      for (var item in widget.checkoutItems) {
+        if (item['id'] != null) {
+          await http.post(
+            Uri.parse('http://localhost:5000/api/purchases'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode({
+              'resource_id': int.parse(item['id']!),
+              'quantity': 1, // Fulfills "Buy as many as you want" row execution structure
+            }),
+          );
+        }
+      }
+      if (!mounted) return;
+      // Navigate to success dashboard route context upon clean completion
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const PayNowPage()),
+      );
+    } catch (e) {
+      print('Transaction Network Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Transaction Failed. Network Error.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Math breakdowns matching the structural metrics of image_50c1e1.png
+    // Math breakdowns matching the structural metrics of image references
     final int subtotal = _calculateSubtotal();
     const int deliveryFee = 30;
     const int serviceFee = 16;
@@ -46,6 +90,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  // Back arrow icon
                   GestureDetector(
                     onTap: () => Navigator.pop(context), // Seamless step back into myorder stack
                     child: const Icon(Icons.arrow_back_rounded, size: 32, color: Colors.black),
@@ -56,7 +101,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
             ),
             Container(width: double.infinity, height: 1.5, color: Colors.black),
 
-            // MAIN SCROLLABLE CONTENT BODY
+            // MAIN SCROLLABLE CONTENT BODY (RETAINED COMPLETE RICH UI STRUCTURE)
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
@@ -82,7 +127,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                 const SizedBox(height: 6),
                                 Text(
                                   'Edge of the Penacony Dreamscape, Boundary Sea',
-                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black.withOpacity(0.7), fontFamily: 'Courier'),
+                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black54, fontFamily: 'Courier'),
                                 ),
                               ],
                             ),
@@ -137,7 +182,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     ),
                     Container(width: double.infinity, height: 1.5, color: Colors.black),
 
-                    // SECTION 3: PAYMENT METHOD (Labeled "Cart List" in image mockup matching exact styling reference)
+                    // SECTION 3: PAYMENT METHOD (Preserved original reference label string)
                     _buildSectionHeader('Cart List'), 
                     Column(
                       children: [
@@ -187,21 +232,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       ),
                     ),
 
-                    // INTERACTIVE PAY NOW ACTION SUBMIT BUTTON (Mint Green)
+                    // INTERACTIVE PAY NOW ACTION SUBMIT BUTTON WITH LOADING INDICATORS
                     Padding(
                       padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 32.0),
                       child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const PayNowPage()),
-                          );
-                        },
+                        onTap: _isProcessing ? null : _processTransaction,
                         child: Container(
                           width: double.infinity,
                           height: 58,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF8ECAA7), // Pastel mint green block color
+                            color: _isProcessing ? Colors.grey : const Color(0xFF8ECAA7), // Pastel mint green block color
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(color: Colors.black, width: 3),
                             boxShadow: const [
@@ -212,11 +252,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
                               )
                             ],
                           ),
-                          child: const Center(
-                            child: Text(
-                              'Pay Now',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.black, letterSpacing: 0.5),
-                            ),
+                          child: Center(
+                            child: _isProcessing
+                                ? const CircularProgressIndicator(color: Colors.black)
+                                : const Text(
+                                    'Pay Now',
+                                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.black, letterSpacing: 0.5),
+                                  ),
                           ),
                         ),
                       ),
@@ -231,7 +273,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  // Component framework to draw section title headers matching the image layout cuts
+  // Component framework to draw section title headers matching the exact layout cuts
   Widget _buildSectionHeader(String title) {
     return Container(
       width: double.infinity,
